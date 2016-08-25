@@ -710,6 +710,13 @@ void saveAndPlotPlots(string dir_name,string file_name,string obj_type,vector<do
     fprintf(fp,"%f %f %f %f\n",(double)i/(N_SAMPLE_PTS-1.0),vals[0][i],vals[1][i],vals[2][i]);
   fclose(fp);
 
+  float sum[3] = {0, 0, 0};
+  for (int v = 0; v < 3; ++v)
+      for (int i = 0; i < vals[v].size(); i = i + 4)
+          sum[v] += vals[v][i];
+  printf("%s AP: %f %f %f\n", file_name.c_str(), sum[0] / 11, sum[1] / 11, sum[2] / 11);
+
+
   // create png + eps
   for (int32_t j=0; j<2; j++) {
 
@@ -762,14 +769,31 @@ void saveAndPlotPlots(string dir_name,string file_name,string obj_type,vector<do
   system(command);
 }
 
-bool eval(string result_sha,Mail* mail){
+vector<int32_t> getEvalIndices(const string& result_dir) {
+
+    DIR* dir;
+    dirent* entity;
+    dir = opendir(result_dir.c_str());
+    if (dir) {
+        while (entity = readdir(dir)) {
+            string path(entity->d_name);
+            int32_t len = path.size();
+            if (len < 10) continue;
+            int32_t index = atoi(path.substr(len - 10, 10).c_str());
+            indices.push_back(index);
+        }
+    }
+    return indices;
+}
+
+bool eval(string gt_dir, string result_dir, Mail* mail){
 
   // set some global parameters
   initGlobals();
 
   // ground truth and result directories
-  string gt_dir         = "data/object/label_2";
-  string result_dir     = "results/" + result_sha;
+  // string gt_dir         = "data/object/label_2";
+  // string result_dir     = "results/" + result_sha;
   string plot_dir       = result_dir + "/plot";
 
   // create output directories
@@ -788,7 +812,10 @@ bool eval(string result_sha,Mail* mail){
 
   // for all images read groundtruth and detections
   mail->msg("Loading detections...");
-  for (int32_t i=0; i<N_TESTIMAGES; i++) {
+  std::vector<int32_t> indices = getEvalIndices(result_dir + "/data/");
+  printf("number of files for evaluation: %d\n", (int)indices.size());
+
+  for (int32_t i=0; i<indices.size(); i++) {
 
     // file name
     char file_name[256];
@@ -884,28 +911,27 @@ bool eval(string result_sha,Mail* mail){
 int32_t main (int32_t argc,char *argv[]) {
 
   // we need 2 or 4 arguments!
-  if (argc!=2 && argc!=4) {
-    cout << "Usage: ./eval_detection result_sha [user_sha email]" << endl;
+  if (argc!=3) {
+    cout << "Usage: ./eval_detection_3d_offline gt_dir result_dir" << endl;
     return 1;
   }
 
   // read arguments
-  string result_sha = argv[1];
+  string gt_dir = argv[1];
+  string result_dir = argv[2];
 
   // init notification mail
   Mail *mail;
-  if (argc==4) mail = new Mail(argv[3]);
-  else         mail = new Mail();
+  mail = new Mail();
   mail->msg("Thank you for participating in our evaluation!");
 
   // run evaluation
-  if (eval(result_sha,mail)) {
+  if (eval(gt_dir, result_dir, mail)) {
     mail->msg("Your evaluation results are available at:");
-    mail->msg("http://www.cvlibs.net/datasets/kitti/user_submit_check_login.php?benchmark=object&user=%s&result=%s",argv[2], result_sha.c_str());
+    mail->msg(result_dir.c_str());
   } else {
-    system(("rm -r results/" + result_sha).c_str());
+    system(("rm -r " + result_dir + "/plot").c_str());
     mail->msg("An error occured while processing your results.");
-    mail->msg("Please make sure that the data in your zip archive has the right format!");
   }
 
   // send mail and exit

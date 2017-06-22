@@ -14,3 +14,9 @@ Run the evalutaion by:
     ./evaluate_object_3d_offline groundtruth_dir result_dir
     
 Note that you don't have to detect over all KITTI training data. The evaluator only evaluates samples whose result files exist.
+
+
+### Updates
+
+- June, 2017:
+  * Fixed the bug of detection box filtering based on min height according to KITTI's note on 25.04.2017.

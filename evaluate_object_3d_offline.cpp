@@ -441,8 +441,12 @@ void cleanData(CLASSES current_class, const vector<tGroundtruth> &gt, const vect
     else
       valid_class = -1;
 
+    int32_t height = fabs(det[i].box.y1 - det[i].box.y2);
+
     // set ignored vector for detections
-    if(valid_class==1)
+    if(height<MIN_HEIGHT[difficulty])
+      ignored_det.push_back(1);
+    else if(valid_class==1)
       ignored_det.push_back(0);
     else
       ignored_det.push_back(-1);
@@ -714,7 +718,7 @@ void saveAndPlotPlots(string dir_name,string file_name,string obj_type,vector<do
   for (int v = 0; v < 3; ++v)
       for (int i = 0; i < vals[v].size(); i = i + 4)
           sum[v] += vals[v][i];
-  printf("%s AP: %f %f %f\n", file_name.c_str(), sum[0] / 11, sum[1] / 11, sum[2] / 11);
+  printf("%s AP: %f %f %f\n", file_name.c_str(), sum[0] / 11 * 100, sum[1] / 11 * 100, sum[2] / 11 * 100);
 
 
   // create png + eps
